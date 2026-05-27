@@ -8,11 +8,12 @@ from src.schemas import ContactCreate, ContactUpdate
 
 def get_contacts(
     db: Session,
+    user_id: int,
     first_name: Optional[str],
     last_name: Optional[str],
     email: Optional[str],
 ) -> list[Contact]:
-    query = db.query(Contact)
+    query = db.query(Contact).filter(Contact.user_id == user_id)
     filters = []
     if first_name:
         filters.append(Contact.first_name.ilike(f"%{first_name}%"))
@@ -25,16 +26,16 @@ def get_contacts(
     return query.order_by(Contact.last_name, Contact.first_name).all()
 
 
-def get_contact(db: Session, contact_id: int) -> Contact | None:
-    return db.query(Contact).filter(Contact.id == contact_id).first()
+def get_contact(db: Session, contact_id: int, user_id: int) -> Contact | None:
+    return db.query(Contact).filter(Contact.id == contact_id, Contact.user_id == user_id).first()
 
 
-def get_contact_by_email(db: Session, email: str) -> Contact | None:
-    return db.query(Contact).filter(Contact.email == email).first()
+def get_contact_by_email(db: Session, email: str, user_id: int) -> Contact | None:
+    return db.query(Contact).filter(Contact.email == email, Contact.user_id == user_id).first()
 
 
-def create_contact(db: Session, body: ContactCreate) -> Contact:
-    contact = Contact(**body.model_dump())
+def create_contact(db: Session, body: ContactCreate, user_id: int) -> Contact:
+    contact = Contact(**body.model_dump(), user_id=user_id)
     db.add(contact)
     db.commit()
     db.refresh(contact)
@@ -54,9 +55,9 @@ def delete_contact(db: Session, contact: Contact) -> None:
     db.commit()
 
 
-def get_upcoming_birthdays(db: Session) -> list[Contact]:
+def get_upcoming_birthdays(db: Session, user_id: int) -> list[Contact]:
     today = date.today()
-    contacts = db.query(Contact).all()
+    contacts = db.query(Contact).filter(Contact.user_id == user_id).all()
     result = []
     for contact in contacts:
         try:
