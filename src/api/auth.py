@@ -46,6 +46,12 @@ async def login(
             detail="Invalid email or password",
         )
 
+    if not user.is_verified:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Email not verified. Please check your inbox.",
+        )
+
     access_token = create_access_token({"sub": user.email})
     refresh_token = create_refresh_token({"sub": user.email})
     user_repo.update_refresh_token(db, user, refresh_token)
